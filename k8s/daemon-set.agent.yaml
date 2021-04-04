@@ -1,0 +1,78 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: weave-scope-agent
+  labels:
+    name: weave-scope-agent
+spec:
+  minReadySeconds: 5
+  selector:
+    matchLabels:
+      name: weave-scope-agent
+  template:
+    metadata:
+      labels:
+        name: weave-scope-agent
+    spec:
+      containers:
+        - name: scope-agent
+          args:
+            - '--mode=probe'
+            - '--probe-only'
+            - '--probe.kubernetes.role=host'
+            - '--probe.publish.interval=4500ms'
+            - '--probe.spy.interval=2s'
+            - '--probe.docker.bridge=docker0'
+            - '--probe.docker=true'
+            - '--weave=false'
+            - '--probe.no-controls=true'
+            - 'weave-scope-app.weave.svc.cluster.local:4040'
+          command:
+            - /home/weave/scope
+          env: []
+          image: AGENT_IMAGE_NAME:SET_BY_CI
+          imagePullPolicy: Always
+          resources:
+            limits:
+              memory: 2000Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          securityContext:
+            privileged: true
+            allowPrivilegeEscalation: true
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+          volumeMounts:
+            - name: scope-plugins
+              mountPath: /var/run/scope/plugins
+            - name: sys-kernel-debug
+              mountPath: /sys/kernel/debug
+            - name: docker-socket
+              mountPath: /var/run/docker.sock
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
+      hostPID: true
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+        - effect: NoExecute
+          operator: Exists
+      volumes:
+        - name: scope-plugins
+          hostPath:
+            path: /var/run/scope/plugins
+        - name: sys-kernel-debug
+          hostPath:
+            path: /sys/kernel/debug
+        - name: docker-socket
+          hostPath:
+            path: /var/run/docker.sock
+      serviceAccountName: weave-agent
+  updateStrategy:
+    type: RollingUpdate

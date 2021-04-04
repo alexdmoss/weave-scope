@@ -1,0 +1,56 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weave-scope-app
+  labels:
+    name: weave-scope-app
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      name: weave-scope-app
+  template:
+    metadata:
+      labels:
+        name: weave-scope-app
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: name
+                    operator: In
+                    values:
+                      - weave-scope-app
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: app
+          args:
+            - '--mode=app'
+            - '--weave=false'
+            - '--probe.no-controls=true'
+          command:
+            - /home/weave/scope
+          env: []
+          image: APP_IMAGE_NAME:SET_BY_CI
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 4040
+              protocol: TCP
+          resources:
+            limits:
+              memory: 1000Mi
+            requests:
+              cpu: 25m
+              memory: 80Mi
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            runAsUser: 7007
+            runAsGroup: 7007
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true

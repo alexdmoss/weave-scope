@@ -1,0 +1,10 @@
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: weave
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: weave-scope
